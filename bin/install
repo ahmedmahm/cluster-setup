@@ -1,0 +1,39 @@
+#!/bin/bash
+set -e -E -u -o pipefail
+
+CHART_DIR=${1:?no CHART_DIR given?!}
+[[ -d $CHART_DIR ]] || { echo "path $CHART_DIR invalid!" && exit 2; }
+
+rm -f $CHART_DIR/charts/*.tgz
+
+if [[ -r $CHART_DIR/values.yaml ]]; then
+    NAME=$(yq r $CHART_DIR/values.yaml app-base.containerName)
+    if [[ $NAME == "null" || $NAME == "" ]]; then
+        NAME=$(basename $CHART_DIR)
+    fi
+else
+    NAME=$(basename $CHART_DIR)
+fi
+
+echo "installing/upgrading $NAME"
+DEFAULT_FILE=$(dirname $0)/../envs/default.yaml
+HELM_ARGS="-f $DEFAULT_FILE"
+shift
+
+ENV=$(kubectl config current-context | cut -d_ -f2)
+ENV_FILE=$(dirname $0)/../envs/$ENV.yaml
+if [[ -r $ENV_FILE ]]; then
+    echo "env file for '$ENV' found"
+    HELM_ARGS="$HELM_ARGS -f $ENV_FILE"
+fi
+
+helm dep up $CHART_DIR
+
+if helm ls --failed -q | grep -q "^$NAME$"; then
+    echo "removing old failed $NAME"
+    helm delete --purge $NAME
+fi
+
+helm upgrade $NAME $CHART_DIR --install $HELM_ARGS $* ||
+    helm upgrade $NAME $CHART_DIR --install $HELM_ARGS --force $*
+echo "done."

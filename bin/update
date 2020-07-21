@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e -E -u
+
+CHART_DIR=${1:?no CHART_DIR given?!}
+NAME=$(basename $CHART_DIR)
+BIN_DIR=$(dirname $0)
+
+$BIN_DIR/delete $CHART_DIR --kill && $BIN_DIR/install $CHART_DIR

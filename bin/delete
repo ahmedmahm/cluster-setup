@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e -E -u
+
+IMAGE_DIR=${1:?no IMAGE_DIR given?!}
+
+if [[ -r $IMAGE_DIR/values.yaml ]]; then
+    NAME=$(yq r $IMAGE_DIR/values.yaml app-base.containerName)
+    if [[ $NAME == "null" || $NAME == "" ]]; then
+        NAME=$(basename $IMAGE_DIR)
+    fi
+else
+    NAME=$(basename $IMAGE_DIR)
+fi
+
+helm delete --purge $NAME
+if [ $# -eq 2 ] && [ $2 == '--kill' ]; then
+    minikube ssh "docker images | grep $NAME | tr -s ' ' | cut -d ' ' -f 2 | xargs -I {} docker rmi --force eu.gcr.io/amh-infrastructure/$NAME:{}"
+fi
+echo "done."

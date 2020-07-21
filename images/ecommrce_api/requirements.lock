@@ -1,0 +1,9 @@
+dependencies:
+- name: app-base
+  repository: file://../app-base
+  version: 0.0.3
+- name: mysql
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  version: 0.6.0
+digest: sha256:df8c73a31347afea8a6ec24504503e9e2379986073fb601927f6e23c9bf13a05
+generated: 2018-08-21T13:39:15.928802543+02:00

@@ -1,0 +1,73 @@
+app-base:
+  appName: ecommrce
+  image:
+  imageTag: local
+  testingImage:
+  testingImageTag: local-dev
+
+  env:
+  - name: APP_ECOMMRCE_ID
+    valueFrom:
+      secretKeyRef:
+        name:
+        key:
+  - name: DB_DATABASE
+    valueFrom:
+      secretKeyRef:
+        name:
+        key: DB_DATABASE
+  - name: DB_HOST
+    valueFrom:
+      secretKeyRef:
+        name:
+        key: DB_HOST
+  - name: DB_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name:
+        key: DB_PASSWORD
+  - name: DB_USERNAME
+    valueFrom:
+      secretKeyRef:
+        name:
+        key: DB_USERNAME
+  - name: JWT_PUBLIC_KEY
+    valueFrom:
+      secretKeyRef:
+        name:
+        key: JWT_PUBLIC_KEY
+
+
+  lifecycle:
+    postStart:
+      exec:
+        command:
+          - '/bin/sh'
+          - '-c'
+          - 'if [ -f /usr/local/etc/php/conf.d/newrelic.ini ];then sed -i -e "s/newrelic.license =.*/newrelic.license = ${NR_LICENSE_KEY}/" /usr/local/etc/php/conf.d/newrelic.ini;fi;php artisan migrate'
+  command-local:
+    - '/bin/sh'
+    - '-c'
+    - 'echo "your command here"'
+
+mysql:
+  fullnameOverride: monte-db
+
+  initializationFiles:
+    create-boilerplate_test-db.sql: |-
+      CREATE DATABASE IF NOT EXISTS `ecommrce_test`;
+
+  mysqlRootPassword: password
+  mysqlDatabase: monte
+
+  persistence:
+    enabled: true
+    accessMode: ReadWriteOnce
+    size: 1Gi
+
+  service:
+    type: NodePort
+    port: 3306
+
+  metrics:
+    enabled: true

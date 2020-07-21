@@ -1,0 +1,2 @@
+$(dirname $0)/stop-cluster
+$(dirname $0)/start-cluster

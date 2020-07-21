@@ -1,0 +1,69 @@
+#!/bin/bash
+set -e -E -o pipefail -u -C
+
+MINIKUBE_VERSION=v1.11.0
+
+BIN_DIR=$(dirname $0)
+CLUSTER_ROOT_DIR=$BIN_DIR/..
+IMAGE_DIR=$CLUSTER_ROOT_DIR/images
+
+DEPS=$([ $# -eq 1 ] && [ $1 == '--nodeps' ] && echo false || echo true)
+
+if [ $DEPS == "true" ]
+then
+    echo
+    echo "bootstrapping local kubernetes cluster"
+    echo
+    echo "[NOTE] During bootstrap, admin rights are required; you will be prompted to enter a password (just once)."
+    echo "[WARN] During the bootstrap, an existing minikube installation will be removed!"
+    echo -n "Hit Ctrl-C to stop here, Return to continue... "
+    read INPUT
+fi
+
+if [ -f "$HOME/.minikube" ]
+then
+	echo "removing old minikube installation"
+	minikube delete &> /dev/null || :
+	ls -1 $HOME/.minikube | grep -v cache | while read F; do
+	    rm -rf $HOME/$F
+	done
+fi
+
+if [ $DEPS == "true" ]
+then
+    echo "installing minikube (admin rights required)"
+
+    if [[ ! -f "/usr/local/bin/minikube"  ||  "$(minikube version | head -1 | cut -d ' ' -f3)" != "$MINIKUBE_VERSION" ]]; then
+        curl -Lo minikube https://storage.googleapis.com/minikube/releases/$MINIKUBE_VERSION/minikube-darwin-amd64 \
+            && chmod +x minikube \
+            && sudo mv minikube /usr/local/bin/
+    else
+        echo "Skiping minikube installation"
+    fi
+
+    echo "installing docker-machine-driver-hyperkit (admin rights required)"
+    curl -LO https://storage.googleapis.com/minikube/releases/latest/docker-machine-driver-hyperkit \
+        && chmod +x docker-machine-driver-hyperkit \
+        && sudo mv docker-machine-driver-hyperkit /usr/local/bin/ \
+        && sudo chown root:wheel /usr/local/bin/docker-machine-driver-hyperkit \
+        && sudo chmod u+s /usr/local/bin/docker-machine-driver-hyperkit
+
+    echo "installing coreutils"
+    brew install coreutils 2>/dev/null || brew upgrade coreutils
+    brew install gnu-sed 2>/dev/null || brew upgrade gnu-sed
+    brew install pv 2>/dev/null || brew upgrade pv
+    brew install yq 2>/dev/null || brew upgrade yq
+
+    echo "installing kubernetes tools"
+    brew install kubectl 2>/dev/null || brew upgrade kubectl || :
+
+    if [[ ! -f "/usr/local/bin/helm"  ||  "$(helm version --client | cut -d '"' -f2)" != "v2.13.1" ]]; then
+        if [[ -f "/usr/local/bin/helm" ]]; then
+            brew unlink kubernetes-helm
+        fi
+        brew install https://github.com/Homebrew/homebrew-core/raw/c3a105c41a/Formula/kubernetes-helm.rb
+        brew switch kubernetes-helm 2.13.1
+    else
+        echo "Skiping helm installation"
+    fi
+fi

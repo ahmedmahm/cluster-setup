@@ -1,0 +1,26 @@
+#!/bin/bash
+
+if [ "$#" -ne 1 ];then
+    echo -e "\nPlease enter one service name (only one)\nIt will try to find the DB even with shorter names\nHere is the list of all available DB's:\n"
+    kubectl get services | grep "\-db" | cut -f 1 -d "-"
+    exit 1
+fi
+
+SERVICEID=$(kubectl get services | grep "\-db" | cut -f 1 -d " " | grep $1)
+
+if [ "$SERVICEID" == "" ];then
+    echo -e "\nContainer not found.\nAll the available pods (pick one)\n"
+    kubectl get services | grep "\-db" | cut -f 1 -d "-"
+elif [ $(echo "$SERVICEID" | wc -l | tr -d '[:space:]') -eq "1" ];then
+    URL=$(minikube service $SERVICEID --url)
+    IP=$(echo $URL | cut -f 3 -d "/" | cut -f 1 -d ":")
+    PORT=$(echo $URL | cut -f 3 -d ":")
+    echo -e "For $SERVICEID\n"
+    echo "Host: $IP"
+    echo "User: root"
+    echo "Password: password"
+    echo "Port: $PORT"
+else
+    echo -e "\nAmbiguous container name (please pick one of them)\n"
+    echo "$SERVICEID" | cut -f 1 -d "-"
+fi

@@ -1,0 +1,8 @@
+dependencies:
+- name: app-base
+  version: '>=0.0.3'
+  repository: 'file://../app-base'
+- name: mysql
+  version: 0.6.0
+  repository: https://kubernetes-charts.storage.googleapis.com/
+  condition: mysql.enabled

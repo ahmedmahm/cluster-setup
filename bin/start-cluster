@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e -E -o pipefail -u -C
+
+KUBERNETES_VERSION=v1.15.12
+
+MEM=$(top -l 1 -s 0 | grep PhysMem | cut -d " " -f2)
+case "$MEM" in
+    2gb)
+        echo "please get more memory"
+        exit 1
+        ;;
+    4gb)
+        echo "please get more memory, but let's try it"
+        USEMEM=3000
+        ;;
+    8gb)
+        echo "please get more memory, but let's try it"
+        USEMEM=6000
+        ;;
+    *)
+        USEMEM=8000
+        ;;
+esac
+
+echo "starting cluster"
+NFSDIR="/System/Volumes/Data$HOME"
+[[ $(sw_vers -productVersion) == "10.14"* ]] && NFSDIR="$HOME"
+[[ -r .uuid ]] && UUID=$(cat .uuid) || UUID=$(uuidgen | tee .uuid)
+[[ -r .nfsshares ]] && NFSSHARES=$(cat .nfsshares) || NFSSHARES=$(echo "$NFSDIR" | tee .nfsshares)
+
+echo "resetting nfs exports (admin rights required)"
+echo "" | sudo tee /etc/exports > /dev/null
+sed "/^$/d;s/^/nfs export: /" /etc/exports
+
+minikube start \
+    --vm-driver hyperkit \
+    --uuid $UUID \
+    --cpus 4 \
+    --memory $USEMEM \
+    --disk-size 40g \
+    --kubernetes-version $KUBERNETES_VERSION \
+    --nfs-share $NFSSHARES
+minikube addons enable ingress
+helm init --wait || :
+DSTR=$(LC_ALL=en_EN.utf8 date -u); minikube ssh "sudo date --set=\"$DSTR\""

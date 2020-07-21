@@ -1,0 +1,20 @@
+#!/bin/bash
+set -e -E -u
+
+if [ "$#" -ne 1 ];then
+	echo -e "\nPlease enter one pod name (only one)\nIt will try to find the pod even with shorter names\nHere is the list of all available pods\n"
+	kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | grep -v "\-db\-"
+	exit 1
+fi
+
+PODID=$(kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | grep $1 | grep -v "\-db\-")
+
+if [ "$PODID" == "" ];then
+	echo -e "\nContainer not found.\nAll the available pods (pick one)\n"
+	kubectl get pods -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}' | grep -v "\-db\-"
+elif [ $(echo "$PODID" | wc -l | tr -d '[:space:]') -eq "1" ];then
+    kubectl exec -it $PODID -- /bin/bash -c "export COLUMNS=`tput cols`; export LINES=`tput lines`;bash"
+else
+	echo -e "\nAmbiguous container name (please pick one of them)\n"
+	echo "$PODID"
+fi
