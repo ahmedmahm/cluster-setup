@@ -1,6 +1,5 @@
 # Kubernetes setup
-<p align="center"><img src="https://magazine.odroid.com/wp-content/uploads/Kubernetes-logo.png
-" width="400"></p>
+<p align="center"><img src="https://magazine.odroid.com/wp-content/uploads/Kubernetes-logo.png" width="400"></p>
 
 # Table of content
 * [Start](#Start)
